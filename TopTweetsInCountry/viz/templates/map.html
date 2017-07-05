@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.countries {
+  fill: none;
+}
+
+.states {
+  fill: none;
+  stroke: #fff;
+  stroke-linejoin: round;
+}
+
+.map-layout{
+	position: relative;
+	width: 1200px;
+	height: 800px;
+	margin: 30px;
+}
+
+.q0-9 { fill:rgb(247,251,255); }
+.q1-9 { fill:rgb(222,235,247); }
+.q2-9 { fill:rgb(198,219,239); }
+.q3-9 { fill:rgb(158,202,225); }
+.q4-9 { fill:rgb(107,174,214); }
+.q5-9 { fill:rgb(66,146,198); }
+.q6-9 { fill:rgb(33,113,181); }
+.q7-9 { fill:rgb(8,81,156); }
+.q8-9 { fill:rgb(8,48,107); }
+
+</style>
+<body>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/d3/3.5.3/d3.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.9/topojson.min.js"></script>
+<script src="/static/datamaps.world.min.js"></script>
+
+<h1>Country wise top tweets</h1>
+
+<div id="container" class="map-layout"></div>
+<script>
+
+
+      
+      var colors = ["#ffffcc","#ffeda0","#fed976","#feb24c","#fd8d3c","#fc4e2a","#e31a1c","#bd0026","#800026"];
+      var source = new EventSource('/stream');
+	  var countryData = {};
+	  
+      source.onmessage = function (event) {
+        
+        countryData = updateCountryData(countryData, event); 
+
+        console.log("NEW DATA IS HERE " + event.data);
+
+      };
+      
+      var width = parseInt(d3.select('#container').style('width'))
+      var height = parseInt(d3.select('#container').style('height'))
+
+     var map = new Datamap({
+        element: document.getElementById('container'),
+
+        scope: 'world',
+        projection: 'mercator',
+        //projection: d3.geo.mercator().scale(width).translate(width/2, height/2),
+        fills: {
+            defaultFill: '#95bd8f'
+        },
+
+        data: {
+        },
+
+        geographyConfig: {
+            dataUrl: null,
+            borderWidth: 1,
+            borderColor: '#A5A5A5',
+            popupTemplate: function(geo, data) {
+            	
+            var objs = countryData[geo.id];
+            var lineOfTweets = "<p> No Tweets</p>";
+            if(objs){
+            	lineOfTweets = "<ul>";
+            	objs.forEach(function(obj){
+            		lineOfTweets = lineOfTweets + "<li>" + obj["sentence"] + "</li>";
+            	});
+            	lineOfTweets = lineOfTweets + "</ul>"
+            }
+
+              
+              
+              console.log(lineOfTweets)
+
+                return ['<div class="hoverinfo"><strong>',
+                        'Top tweets in ', geo.properties.name,  lineOfTweets, 
+                        '</strong></div>'].join('');
+            }
+        }
+    });
+
+
+function updateCountryData(countryData, event){
+	var country_id = event.data.split("ZYXCBA")[0];
+    var sentence = event.data.split("ZYXCBA")[1];
+    var count = event.data.split("ZYXCBA")[2]; 
+    
+    if(countryData[country_id]){
+    	var currentCountry = countryData[country_id];
+    	var flag = true;
+    	currentCountry.forEach(function (ob){
+    		if(ob["sentence"] === sentence){
+    			ob["lastUpdate"] = new Date();
+    			flag = false;
+    		}
+    	});
+    	if(flag){
+    		var ob = prepareData(sentence, count);
+        	currentCountry.push(ob);
+    	}
+    	currentCountry = currentCountry.sort(function(a,b){
+    						return b["lastUpdate"] - a["lastUpdate"];
+    					});
+    	
+    	currentCountry = currentCountry.filter(function(a){
+				    		var current = new Date();
+				    		var diff = (current - a["lastUpdate"])/ (1000*60);
+				    		return diff < 10;
+    					});
+    	countryData[country_id] = currentCountry;
+    	
+    }else{
+    	var ob = prepareData(sentence, count);
+    	countryData[country_id] = [ob];
+    }
+    
+    return countryData;
+}
+
+function prepareData(sentence,count){
+	var ob = {};
+	ob["sentence"] =  sentence;
+	ob["count"] =  count;
+	ob["lastUpdate"] = new Date();
+	return ob;
+}
+
+
+
+var updateViz =  function(){
+
+    for(key in hashCount)
+    {
+
+        console.log("REFRESH: " + key + ":" + hashCount[key]);
+        var data = {}; 
+
+        if(hashCount[key])
+        {
+          data[key] = colors[Math.round(hashCount[key]%10)];
+          map.updateChoropleth(data);
+        
+        }
+    }
+
+    hashCount = {};
+}
+
+var updateMap = function(){
+	var max = 1, min = 100000;
+	var data = {};
+	console.log("REFRESHING MAP!");
+	for(key in countryData){
+		currentCountry = countryData[key];
+		if(key == "1") continue
+		if(currentCountry){
+			var current = new Date();
+			var diff = current - currentCountry[0].lastUpdate;
+			/* if(diff > max){ max = diff;}
+			data[key] = diff; */
+			var colorData = {};
+			colorData[key] = colors[diff%10];
+			if(diff > 1000) continue;
+			map.updateChoropleth(colorData);
+		}
+	}
+/* 	if(max < 1){ max = 1;}
+	console.log(data)
+	for(key in data){
+		if(key == "1") continue;
+		var colorData = {};
+		var diff = data[key];
+		console.log(diff/max);
+		console.log(max)
+		colorData[key] = colors[Math.round((diff) % 10)];
+		console.log(colorData)
+		map.updateChoropleth(colorData);
+	} */
+}
+
+window.setInterval(updateMap, 1000);
+
+</script>
+
+
+</body>
