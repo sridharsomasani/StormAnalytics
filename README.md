@@ -42,6 +42,21 @@ Commands to submit topology to Storm:
 storm jar target/TopTweetsInCountry-0.0.1-SNAPSHOT-jar-with-dependencies.jar udacity.storm.TopNTweetTopology
 ```
 
+To view d3 World Choropleth visualization:
+- Change directory to `TopTweetsinCountry/viz` folder
+```
+cd TopTweetsinCountry/viz 			// assuming current directory is repository root
+```
+- Start flask server using below command
+```
+python app.py
+```
+- Open browser in host machine and enter below url
+```
+http://localhost:5000/map
+```
+Note: Refer to vagrant file for port mapping
+
 Note: The above vagrant file is taken from: https://github.com/udacity/ud381
 
 

@@ -6,5 +6,5 @@ VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "udacity/ud381"
-  config.vm.network :forwarded_port, guest: 6000, host: 6000
+  config.vm.network :forwarded_port, guest: 5000, host: 5000
 end
